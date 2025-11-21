@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, ArrowRight, Shield, Zap, Heart, Loader2 } from "lucide-react";
-import { PokemonDetail, FavoritePokemon } from "@/types";
+import { Star, ArrowRight, Zap, Loader2 } from "lucide-react";
+import { PokemonDetail } from "@/types";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PokemonDetailPanelProps {
   pokemonId: number | null;
@@ -84,11 +85,33 @@ export function PokemonDetailPanel({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-20"
+            className="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 overflow-hidden"
           >
-            <div className="flex flex-col items-center gap-3">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2A7B9B]"></div>
-              <p className="text-sm text-gray-500 font-medium">Loading data...</p>
+            <div className="h-full flex flex-col">
+              {/* Skeleton Header */}
+              <div className="p-8 flex flex-col items-center border-b border-gray-100 bg-gray-50/50">
+                 <Skeleton className="w-48 h-48 rounded-full mb-6" />
+                 <Skeleton className="h-4 w-16 mb-2" />
+                 <Skeleton className="h-8 w-48 mb-4" />
+                 <div className="flex gap-2">
+                   <Skeleton className="h-6 w-16 rounded-full" />
+                   <Skeleton className="h-6 w-16 rounded-full" />
+                 </div>
+              </div>
+              {/* Skeleton Details */}
+              <div className="p-6 space-y-8">
+                 <div className="space-y-3">
+                   <Skeleton className="h-4 w-24" />
+                   <div className="flex gap-2">
+                     <Skeleton className="h-8 w-24 rounded-lg" />
+                     <Skeleton className="h-8 w-24 rounded-lg" />
+                   </div>
+                 </div>
+                 <div className="space-y-3">
+                   <Skeleton className="h-4 w-24" />
+                   <Skeleton className="h-16 w-full rounded-xl" />
+                 </div>
+              </div>
             </div>
           </motion.div>
         ) : error ? (
@@ -155,7 +178,7 @@ export function PokemonDetailPanel({
                   {pokemon.types.map((type) => (
                     <span
                       key={type}
-                      className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-gray-100 text-gray-600 border border-gray-200"
+                      className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-gray-100 text-gray-600 border border-gray-200 hover:bg-white hover:shadow-sm hover:border-[#2A7B9B]/30 hover:text-[#2A7B9B] transition-all duration-200 cursor-default"
                     >
                       {type}
                     </span>
@@ -175,7 +198,7 @@ export function PokemonDetailPanel({
                   {pokemon.abilities.map((ability) => (
                     <div
                       key={ability}
-                      className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium border border-blue-100 capitalize"
+                      className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium border border-blue-100 capitalize hover:bg-blue-100 transition-colors duration-200"
                     >
                       {ability.replace('-', ' ')}
                     </div>
@@ -193,7 +216,7 @@ export function PokemonDetailPanel({
                     {pokemon.evolutions.map((evo, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100"
+                        className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100 hover:shadow-sm hover:border-blue-100 transition-all duration-200"
                       >
                         <div className="flex flex-col">
                           <span className="font-medium text-gray-700 capitalize">{evo.species}</span>
@@ -203,8 +226,8 @@ export function PokemonDetailPanel({
                             {evo.item && ` + ${evo.item.replace('-', ' ')}`}
                           </span>
                         </div>
-                        <div className="h-8 w-8 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100">
-                          <span className="text-xs font-bold text-gray-300">{idx + 1}</span>
+                        <div className="h-8 w-8 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 text-[#2A7B9B] font-bold">
+                          <span className="text-xs">{idx + 1}</span>
                         </div>
                       </div>
                     ))}
