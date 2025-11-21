@@ -22,10 +22,10 @@ async function bootstrap() {
 
   // Swagger setup
   const config = new DocumentBuilder()
-    .setTitle('Poke API')
+    .setTitle('PokéDex API')
     .setVersion('1.0')
     .setDescription(
-        'APIs for Poke APP (SavannahTech)',
+        'APIs for PokéDex APP (SavannahTech)',
       )
     .build();
   const document = SwaggerModule.createDocument(app, config);
