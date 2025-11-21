@@ -89,17 +89,17 @@ export function PokemonDetailPanel({
           >
             <div className="h-full flex flex-col">
               {/* Skeleton Header */}
-              <div className="p-8 flex flex-col items-center border-b border-gray-100 bg-gray-50/50">
-                 <Skeleton className="w-48 h-48 rounded-full mb-6" />
+              <div className="p-6 flex flex-col items-center border-b border-gray-100 bg-gray-50/50">
                  <Skeleton className="h-4 w-16 mb-2" />
                  <Skeleton className="h-8 w-48 mb-4" />
+                 <Skeleton className="w-40 h-40 rounded-full mb-4" />
                  <div className="flex gap-2">
                    <Skeleton className="h-6 w-16 rounded-full" />
                    <Skeleton className="h-6 w-16 rounded-full" />
                  </div>
               </div>
               {/* Skeleton Details */}
-              <div className="p-6 space-y-8">
+              <div className="p-6 space-y-6">
                  <div className="space-y-3">
                    <Skeleton className="h-4 w-24" />
                    <div className="flex gap-2">
@@ -136,21 +136,9 @@ export function PokemonDetailPanel({
             transition={{ duration: 0.3 }}
             className="flex flex-col h-full"
           >
-            {/* Header Image Section */}
-            <div className="relative bg-gradient-to-b from-gray-50 to-white p-8 flex flex-col items-center border-b border-gray-100">
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                className="relative z-10"
-              >
-                <img
-                  src={pokemon.image}
-                  alt={pokemon.name}
-                  className="w-48 h-48 object-contain drop-shadow-xl"
-                />
-              </motion.div>
-              
+            {/* Header Section - Name/ID above image */}
+            <div className="relative bg-gradient-to-b from-gray-50 to-white p-6 flex flex-col items-center border-b border-gray-100">
+              {/* Favorite Button */}
               <div className="absolute top-4 right-4">
                 <motion.button
                   whileTap={{ scale: 0.9 }}
@@ -171,9 +159,10 @@ export function PokemonDetailPanel({
                 </motion.button>
               </div>
 
-              <div className="mt-6 text-center">
+              {/* Name and ID */}
+              <div className="text-center mb-4">
                 <span className="text-sm font-mono text-gray-400 mb-1 block">#{String(pokemon.id).padStart(3, '0')}</span>
-                <h2 className="text-3xl font-bold text-gray-800 capitalize mb-2">{pokemon.name}</h2>
+                <h2 className="text-3xl font-bold text-gray-800 capitalize mb-3">{pokemon.name}</h2>
                 <div className="flex gap-2 justify-center">
                   {pokemon.types.map((type) => (
                     <span
@@ -185,10 +174,24 @@ export function PokemonDetailPanel({
                   ))}
                 </div>
               </div>
+
+              {/* Image */}
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+                className="relative z-10"
+              >
+                <img
+                  src={pokemon.image}
+                  alt={pokemon.name}
+                  className="w-40 h-40 object-contain drop-shadow-xl"
+                />
+              </motion.div>
             </div>
 
             {/* Details Section */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
               {/* Abilities */}
               <section>
                 <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">

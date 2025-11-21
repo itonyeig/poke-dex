@@ -108,7 +108,6 @@ export default function Home() {
               Poké<span className="text-[#2A7B9B]">Dex</span>
             </h1>
           </div>
-          <div className="text-xs font-mono text-gray-400">v1.0</div>
         </div>
       </header>
 
