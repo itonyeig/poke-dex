@@ -27,14 +27,15 @@ export class FavoritePokemon {
 //   @Prop({
 //     type: [
 //       {
-//         id: Number,
-//         is_default: Boolean,
-//         url: String,
-//       } satisfies SchemaDefinition<Evolution>,
+//         species: { type: String, required: true },
+//         trigger: { type: String, default: null },
+//         minLevel: { type: Number, default: null },
+//         item: { type: String, default: null },
+//       } satisfies SchemaDefinition<EvolutionOption>,
 //     ],
 //     default: [],
 //   })
-//   evolutions: Evolution[];
+//   evolutions: EvolutionOption[];
 }
 
 export const FavoritePokemonSchema = SchemaFactory.createForClass(FavoritePokemon);

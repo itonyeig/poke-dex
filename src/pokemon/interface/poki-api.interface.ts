@@ -31,7 +31,6 @@ export interface PokemonApiResponse {
   stats: Stat[];
   types: Type[];
   weight: number;
-  evolutions?: Evolution[];
 }
 
 export interface Pokemon {
@@ -39,15 +38,38 @@ export interface Pokemon {
   name: string;
   types: string[];
   abilities: string[];
-//   evolutions?: Evolution[];
   image: string;
+  evolutions?: EvolutionOption[];
 }
 
-// interface Evolution {
-//   id: number;
-//   is_default: boolean;
-//   url: string;
-// }
+export interface EvolutionOption {
+  species: string;
+  trigger: string | null;
+  minLevel: number | null;
+  item: string | null;
+}
+
+export interface PokemonSpeciesResponse {
+  evolution_chain: {
+    url: string;
+  } | null;
+}
+
+export interface EvolutionChainResponse {
+  chain: EvolutionChainLink;
+}
+
+export interface EvolutionChainLink {
+  species: Ability;
+  evolution_details: EvolutionDetail[];
+  evolves_to: EvolutionChainLink[];
+}
+
+interface EvolutionDetail {
+  trigger: Ability | null;
+  min_level: number | null;
+  item: Ability | null;
+}
 
 interface Type {
   slot: number;
