@@ -1,4 +1,6 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import axios, { AxiosInstance } from 'axios';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -19,10 +21,14 @@ import { FavoritePokemon, FavoritePokemonDocument } from './schema/favorite-poke
 export class PokemonService {
   private readonly pokeAxiosClient: AxiosInstance;
   private readonly pokemonApiUrl = 'https://pokeapi.co/api/v2/pokemon';
+  private readonly CACHE_KEY = 'pokemon-list';
+  private readonly CACHE_KEY_POKEMON = 'pokemon';
+  private readonly POKEMON_CACHE_TTL = 900000; // 15 minutes in milliseconds
 
   constructor(
     @InjectModel(FavoritePokemon.name)
     private readonly favoritePokemonModel: Model<FavoritePokemonDocument>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
     this.pokeAxiosClient = axios.create({
       baseURL: this.pokemonApiUrl,
@@ -33,12 +39,25 @@ export class PokemonService {
   }
 
   async getPokemonList(limit: number = 150, offset: number = 0): Promise<PokemonResult[] | null> {
+    const cacheKey = `${this.CACHE_KEY}-${limit}-${offset}`;
+    
+    // Try to get from cache first
+    const cachedData = await this.cacheManager.get<PokemonResult[]>(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+
+    // If not in cache, fetch from API
     try {
       const response = await this.pokeAxiosClient.get<PokemonListResponse>(`/?limit=${limit}&offset=${offset}`);
       const data = response.data;
       if (response.status !== 200 || !data) {
         throw new BadRequestException('Failed to get pokemon list');
       }
+      
+      // Store in cache (TTL is set at module level - 1 day)
+      await this.cacheManager.set(cacheKey, data.results);
+      
       return data.results;
     } catch (error: any) {
       const err = error?.response?.data || error;
@@ -47,6 +66,15 @@ export class PokemonService {
   }
 
   async getPokemonById(id: number, fetchEvolutions: boolean = true): Promise<Pokemon> {
+    const cacheKey = `${this.CACHE_KEY_POKEMON}-${id}-${fetchEvolutions}`;
+    
+    // Try to get from cache first
+    const cachedData = await this.cacheManager.get<Pokemon>(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+
+    // If not in cache, fetch from API
     try {
       const response = await this.pokeAxiosClient.get<PokemonApiResponse>(`/${id}/`);
       const data = response.data;
@@ -67,6 +95,10 @@ export class PokemonService {
         // height: data.height,
         // weight: data.weight,
       };
+      
+      // Store in cache with 15-minute TTL
+      await this.cacheManager.set(cacheKey, result, this.POKEMON_CACHE_TTL);
+      
       return result;
     }
     catch (error: any) {
