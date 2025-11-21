@@ -58,6 +58,11 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Environment & Base URL
+
+- **Base URL:** `http://localhost:4000`
+- **MongoDB:** The service expects a valid `MONGO_URI` in your environment (see `.env.example`). Favorites are persisted in the `favorite-pokemon` collection with a unique index on `pokemonId`.
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
