@@ -112,6 +112,7 @@ export class PokemonService {
   }
 
   private async fetchEvolutionOptions(speciesUrl: string, pokemonName: string): Promise<EvolutionOption[]> {
+    console.log('fetchEvolutionOptions', speciesUrl, pokemonName);
     try {
       const speciesResponse = await axios.get<PokemonSpeciesResponse>(speciesUrl);
       const evolutionChainUrl = speciesResponse.data?.evolution_chain?.url;
