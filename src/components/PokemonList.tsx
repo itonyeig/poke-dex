@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Star } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { PokemonListItem } from "@/types";
 
@@ -28,15 +28,22 @@ export function PokemonListItemComponent({
 
   return (
     <motion.button
+      layout
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.03, duration: 0.2 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ 
+        layout: { duration: 0.3, type: "spring", bounce: 0.2 },
+        opacity: { duration: 0.2 }
+      }}
       onClick={onClick}
       className={cn(
-        "w-full flex items-center justify-between p-3 rounded-lg text-left transition-all group relative overflow-hidden",
+        "w-full flex items-center justify-between p-3 rounded-lg text-left transition-all group relative overflow-hidden border",
         isSelected
-          ? "bg-theme-gradient text-white shadow-md z-10"
-          : "bg-white hover:bg-gray-50 border border-transparent hover:border-gray-200 text-gray-700"
+          ? "bg-theme-gradient text-white shadow-md z-10 border-transparent"
+          : isFavorite
+            ? "bg-yellow-50/80 border-yellow-200 text-gray-800 hover:bg-yellow-100"
+            : "bg-white hover:bg-gray-50 border-transparent hover:border-gray-200 text-gray-700"
       )}
     >
       <div className="flex items-center gap-3 z-10">
@@ -52,7 +59,7 @@ export function PokemonListItemComponent({
       {isFavorite && (
         <Star
           className={cn(
-            "h-4 w-4 z-10",
+            "h-4 w-4 z-10 transition-colors duration-200",
             isSelected ? "fill-white text-white" : "fill-yellow-400 text-yellow-400"
           )}
         />
@@ -61,7 +68,7 @@ export function PokemonListItemComponent({
       {isSelected && (
         <motion.div
           layoutId="selection-highlight"
-          className="absolute inset-0 bg-theme-gradient -z-0"
+          className="absolute inset-0 bg-theme-gradient z-0"
           initial={false}
           transition={{ type: "spring", stiffness: 500, damping: 30 }}
         />
@@ -93,19 +100,21 @@ export function PokemonList({
 
   return (
     <div className="flex flex-col gap-2 pb-4">
-      {pokemons.map((pokemon, index) => {
-        const id = parseInt(pokemon.url.split("/").filter(Boolean).pop() || "0", 10);
-        return (
-          <PokemonListItemComponent
-            key={pokemon.name}
-            pokemon={pokemon}
-            index={index}
-            isSelected={selectedId === id}
-            isFavorite={favorites.has(id)}
-            onClick={() => onSelect(id)}
-          />
-        );
-      })}
+      <AnimatePresence mode="popLayout">
+        {pokemons.map((pokemon, index) => {
+          const id = parseInt(pokemon.url.split("/").filter(Boolean).pop() || "0", 10);
+          return (
+            <PokemonListItemComponent
+              key={pokemon.name}
+              pokemon={pokemon}
+              index={index}
+              isSelected={selectedId === id}
+              isFavorite={favorites.has(id)}
+              onClick={() => onSelect(id)}
+            />
+          );
+        })}
+      </AnimatePresence>
     </div>
   );
 }
