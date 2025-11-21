@@ -1,8 +1,8 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { PokemonService } from './pokemon.service';
-import { PokemonListResponse } from './interface/poki-api.interface';
 import { ResponseFormatter } from 'src/common/response-formatter';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiParam, ApiTags } from '@nestjs/swagger';
+import { IdParamDto } from './dto/id-param.dto';
 
 @Controller('pokemon')
 @ApiTags('Pokemon')
@@ -14,6 +14,15 @@ export class PokemonController {
     const pokemonList = await this.pokemonService.getPokemonList();
     return ResponseFormatter.Ok({
       data: pokemonList,
+    });
+  }
+
+  @Get(':id')
+  @ApiParam({ name: 'id', type: Number, description: 'Pokemon ID' })
+  async getPokemonById(@Param() params: IdParamDto) {
+    const pokemon = await this.pokemonService.getPokemonById(params.id);
+    return ResponseFormatter.Ok({
+      data: pokemon,
     });
   }
 }
