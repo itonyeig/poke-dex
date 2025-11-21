@@ -1,0 +1,220 @@
+"use client";
+
+import * as React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Star, ArrowRight, Shield, Zap, Heart, Loader2 } from "lucide-react";
+import { PokemonDetail, FavoritePokemon } from "@/types";
+import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
+
+interface PokemonDetailPanelProps {
+  pokemonId: number | null;
+  isFavorite: boolean;
+  onToggleFavorite: (id: number) => Promise<void>;
+}
+
+export function PokemonDetailPanel({
+  pokemonId,
+  isFavorite,
+  onToggleFavorite,
+}: PokemonDetailPanelProps) {
+  const [pokemon, setPokemon] = React.useState<PokemonDetail | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [isFavoriteLoading, setIsFavoriteLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!pokemonId) {
+      setPokemon(null);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchDetail = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await api.getPokemonDetail(pokemonId);
+        if (isMounted) setPokemon(data);
+      } catch (err) {
+        if (isMounted) {
+          setError("Failed to load Pokémon details. Please try again.");
+          console.error(err);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchDetail();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [pokemonId]);
+
+  const handleFavoriteClick = async () => {
+    if (!pokemon) return;
+    try {
+      setIsFavoriteLoading(true);
+      await onToggleFavorite(pokemon.id);
+    } catch (err) {
+      console.error("Failed to toggle favorite", err);
+    } finally {
+      setIsFavoriteLoading(false);
+    }
+  };
+
+  if (!pokemonId) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-gray-400 p-8 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+        <Zap className="h-12 w-12 mb-4 opacity-20" />
+        <p className="text-lg font-medium">Select a Pokémon</p>
+        <p className="text-sm opacity-70">View details and stats here</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden h-full min-h-[500px] relative">
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-20"
+          >
+            <div className="flex flex-col items-center gap-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2A7B9B]"></div>
+              <p className="text-sm text-gray-500 font-medium">Loading data...</p>
+            </div>
+          </motion.div>
+        ) : error ? (
+          <motion.div
+            key="error"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center p-8 text-center"
+          >
+            <div className="text-blue-700">
+              <p className="font-medium mb-2">Oops!</p>
+              <p className="text-sm">{error}</p>
+            </div>
+          </motion.div>
+        ) : pokemon ? (
+          <motion.div
+            key="content"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col h-full"
+          >
+            {/* Header Image Section */}
+            <div className="relative bg-gradient-to-b from-gray-50 to-white p-8 flex flex-col items-center border-b border-gray-100">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+                className="relative z-10"
+              >
+                <img
+                  src={pokemon.image}
+                  alt={pokemon.name}
+                  className="w-48 h-48 object-contain drop-shadow-xl"
+                />
+              </motion.div>
+              
+              <div className="absolute top-4 right-4">
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={handleFavoriteClick}
+                  disabled={isFavoriteLoading}
+                  className={cn(
+                    "p-2 rounded-full transition-all shadow-sm border relative overflow-hidden",
+                    isFavorite 
+                      ? "bg-yellow-50 border-yellow-200 text-yellow-500" 
+                      : "bg-white border-gray-200 text-gray-300 hover:text-gray-400 hover:bg-gray-50"
+                  )}
+                >
+                   {isFavoriteLoading ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-[#2A7B9B]" />
+                   ) : (
+                      <Star className={cn("h-6 w-6", isFavorite && "fill-current")} />
+                   )}
+                </motion.button>
+              </div>
+
+              <div className="mt-6 text-center">
+                <span className="text-sm font-mono text-gray-400 mb-1 block">#{String(pokemon.id).padStart(3, '0')}</span>
+                <h2 className="text-3xl font-bold text-gray-800 capitalize mb-2">{pokemon.name}</h2>
+                <div className="flex gap-2 justify-center">
+                  {pokemon.types.map((type) => (
+                    <span
+                      key={type}
+                      className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-gray-100 text-gray-600 border border-gray-200"
+                    >
+                      {type}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Details Section */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+              {/* Abilities */}
+              <section>
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Zap className="h-4 w-4" /> Abilities
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {pokemon.abilities.map((ability) => (
+                    <div
+                      key={ability}
+                      className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium border border-blue-100 capitalize"
+                    >
+                      {ability.replace('-', ' ')}
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Evolutions */}
+              {pokemon.evolutions && pokemon.evolutions.length > 0 && (
+                <section>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <ArrowRight className="h-4 w-4" /> Evolutions
+                  </h3>
+                  <div className="space-y-3">
+                    {pokemon.evolutions.map((evo, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100"
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-700 capitalize">{evo.species}</span>
+                          <span className="text-xs text-gray-400 capitalize">
+                            Via {evo.trigger.replace('-', ' ')}
+                            {evo.minLevel && ` (Lvl ${evo.minLevel})`}
+                            {evo.item && ` + ${evo.item.replace('-', ' ')}`}
+                          </span>
+                        </div>
+                        <div className="h-8 w-8 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100">
+                          <span className="text-xs font-bold text-gray-300">{idx + 1}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+}
