@@ -18,7 +18,7 @@ export class AllErrorsExceptionsFilter implements ExceptionFilter {
   };
   
 
-  catch(exception: any, host: ArgumentsHost) {
+  catch(exception: unknown, host: ArgumentsHost) {
     Logger.error(exception)
     console.log('error => ', exception);
     const ctx = host.switchToHttp();
@@ -26,18 +26,19 @@ export class AllErrorsExceptionsFilter implements ExceptionFilter {
   
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string | string[] = 'An unexpected error occurred';
-    let error: string = exception.constructor.name as string || 'Internal Server Error';
+    let error: string = 'Internal Server Error';
     
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
       if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
-        message = (exceptionResponse as any).message || message;
+        const responseObj = exceptionResponse as { message?: string | string[]; error?: string };
+        message = responseObj.message || message;
         // Update error based on the actual error or default to a general error message
         error = exception.constructor.name;
       } else {
         message = exceptionResponse.toString();
-        error = (exceptionResponse as any).error || error;; // This could be updated based on how you want to handle string responses
+        error = exception.constructor.name;
       }
     } 
     else if (exception instanceof Error) {

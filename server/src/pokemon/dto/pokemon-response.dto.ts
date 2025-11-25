@@ -9,6 +9,9 @@ class BaseResponseDto {
 }
 
 export class PokemonListItemDto {
+  @ApiProperty({ example: 1 })
+  id: number;
+
   @ApiProperty({ example: 'bulbasaur' })
   name: string;
 

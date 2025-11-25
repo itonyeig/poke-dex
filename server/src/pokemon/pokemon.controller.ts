@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { PokemonService } from './pokemon.service';
 import { ResponseFormatter } from 'src/common/response-formatter';
 import {
@@ -12,6 +12,7 @@ import {
 } from '@nestjs/swagger';
 import { IdParamDto } from './dto/id-param.dto';
 import { AddFavoriteDto } from './dto/add-favorite.dto';
+import { ListQueryDto } from './dto/list-query.dto';
 import {
   ApiErrorResponseDto,
   PokemonDetailResponseDto,
@@ -34,8 +35,8 @@ export class PokemonController {
     description: 'Input parameters are invalid or the upstream API failed.',
     type: ApiErrorResponseDto,
   })
-  async getPokemonList() {
-    const pokemonList = await this.pokemonService.getPokemonList();
+  async getPokemonList(@Query() query: ListQueryDto) {
+    const pokemonList = await this.pokemonService.getPokemonList(query.limit, query.offset);
     return ResponseFormatter.Ok({
       data: pokemonList,
     });

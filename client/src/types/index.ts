@@ -6,10 +6,18 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
+// Error response from backend (when success: false)
+export interface ApiErrorResponse {
+  success: false;
+  message: string | string[];
+  error: string;
+}
+
 // Domain Entities
 export interface PokemonListItem {
   name: string;
   url: string;
+  id: number; // ID extracted by backend from URL
 }
 
 export interface PokemonEvolution {

@@ -1,5 +1,6 @@
 import {
   ApiResponse,
+  ApiErrorResponse,
   PokemonListItem,
   PokemonDetail,
   FavoritePokemon,
@@ -22,24 +23,28 @@ async function fetchClient<T>(
   };
 
   try {
-    console.log("url", url);
+    // console.log("url", url);
     const response = await fetch(url, {
       ...options,
       headers,
     });
 
-    const result: ApiResponse<T> = await response.json();
+    const result: ApiResponse<T> | ApiErrorResponse = await response.json();
 
     if (!response.ok || !result.success) {
-      // Construct a meaningful error message
-      const errorMessage = Array.isArray(result.message)
-        ? result.message.join(", ")
-        : result.message || "An unknown error occurred";
+      // Backend returns structured error response
+      const errorResponse = result as ApiErrorResponse;
+      const errorMessage = Array.isArray(errorResponse.message)
+        ? errorResponse.message.join(", ")
+        : errorResponse.message || "An unknown error occurred";
       
-      throw new Error(errorMessage);
+      const apiError = new Error(errorMessage);
+      // Attach error type for better error handling
+      (apiError as Error & { errorType?: string }).errorType = errorResponse.error;
+      throw apiError;
     }
 
-    return result.data;
+    return (result as ApiResponse<T>).data;
   } catch (error) {
     // Re-throw error with a clean message for the UI to consume
     if (error instanceof Error) {
@@ -54,8 +59,12 @@ export const api = {
    * Fetches the first 150 Pokémon.
    * GET /pokemon/list
    */
-  getPokemonList: () => {
-    return fetchClient<PokemonListItem[]>("/pokemon/list", {
+  getPokemonList: (limit = 30, offset = 0) => {
+    const params = new URLSearchParams({
+      limit: String(limit),
+      offset: String(offset),
+    });
+    return fetchClient<PokemonListItem[]>(`/pokemon/list?${params.toString()}`, {
       method: "GET",
     });
   },

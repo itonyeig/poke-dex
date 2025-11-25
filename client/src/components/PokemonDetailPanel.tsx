@@ -12,24 +12,32 @@ interface PokemonDetailPanelProps {
   pokemonId: number | null;
   isFavorite: boolean;
   onToggleFavorite: (id: number) => Promise<void>;
+  scrollable?: boolean;
+  hideDetails?: boolean;
+  compactActions?: boolean;
 }
 
 export function PokemonDetailPanel({
   pokemonId,
   isFavorite,
   onToggleFavorite,
+  scrollable = true,
+  hideDetails = false,
+  compactActions = false,
 }: PokemonDetailPanelProps) {
   const panelRef = React.useRef<HTMLDivElement | null>(null);
   const [pokemon, setPokemon] = React.useState<PokemonDetail | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [isFavoriteLoading, setIsFavoriteLoading] = React.useState(false);
+  const [mobileSection, setMobileSection] = React.useState<"none" | "overview" | "abilities" | "evolutions">("none");
 
   React.useEffect(() => {
     // Smooth scroll to top of the detail panel when a new Pokémon is selected
     if (panelRef.current) {
       panelRef.current.scrollTo({ top: 0, behavior: "smooth" });
     }
+    setMobileSection("none");
   }, [pokemonId]);
 
   React.useEffect(() => {
@@ -63,7 +71,7 @@ export function PokemonDetailPanel({
   }, [pokemonId]);
 
   const handleFavoriteClick = async () => {
-    if (!pokemon) return;
+    if (!pokemon || isFavoriteLoading) return; // Prevent double-clicks
     try {
       setIsFavoriteLoading(true);
       await onToggleFavorite(pokemon.id);
@@ -87,7 +95,11 @@ export function PokemonDetailPanel({
   return (
     <div
       ref={panelRef}
-      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-y-auto custom-scrollbar h-full min-h-[500px] relative flex flex-col"
+      className={cn(
+        "bg-white rounded-2xl shadow-sm border border-gray-100 h-full relative flex flex-col",
+        hideDetails ? "min-h-[300px]" : "min-h-[500px]",
+        scrollable ? "overflow-y-auto custom-scrollbar" : "overflow-hidden"
+      )}
     >
       <AnimatePresence mode="wait">
         {loading ? (
@@ -205,79 +217,189 @@ export function PokemonDetailPanel({
 
             {/* Content */}
             <div className="flex-1 p-6 space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3 rounded-xl border border-gray-100 bg-gray-50">
-                  <p className="text-xs text-gray-500">Types</p>
-                  <p className="text-sm font-semibold text-gray-800 capitalize">
-                    {pokemon.types.join(", ")}
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl border border-gray-100 bg-gray-50">
-                  <p className="text-xs text-gray-500">Abilities</p>
-                  <p className="text-sm font-semibold text-gray-800">
-                    {pokemon.abilities.length}
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl border border-gray-100 bg-gray-50">
-                  <p className="text-xs text-gray-500">Evolutions</p>
-                  <p className="text-sm font-semibold text-gray-800">
-                    {pokemon.evolutions?.length ?? 0}
-                  </p>
-                </div>
-              </div>
-
-              <section>
-                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                  <Zap className="h-4 w-4" /> Abilities
-                </h3>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {pokemon.abilities.map((ability) => (
-                    <div
-                      key={ability}
-                      className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium border border-blue-100 capitalize hover:bg-blue-100 transition-colors duration-200"
+              {/* Mobile compact actions */}
+              {hideDetails && compactActions && (
+                <div className="flex gap-2">
+                  {(["overview", "abilities", "evolutions"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setMobileSection((prev) => (prev === tab ? "none" : tab))}
+                      className={cn(
+                        "px-3 py-2 rounded-lg text-sm font-medium transition-all border",
+                        mobileSection === tab
+                          ? "bg-[#2A7B9B] text-white border-transparent shadow-sm"
+                          : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                      )}
                     >
-                      {ability.replace("-", " ")}
-                    </div>
+                      {tab === "overview" ? "Overview" : tab === "abilities" ? "Abilities" : "Evolutions"}
+                    </button>
                   ))}
                 </div>
-              </section>
+              )}
 
-              <section>
-                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                  <ArrowRight className="h-4 w-4" /> Evolutions
-                </h3>
-                <div className="mt-3 space-y-3">
-                  {pokemon.evolutions && pokemon.evolutions.length > 0 ? (
-                    pokemon.evolutions.map((evo, idx) => {
-                      const triggerLabel = evo.trigger ? evo.trigger.replace("-", " ") : "Unknown";
-                      const itemLabel = evo.item ? ` + ${evo.item.replace("-", " ")}` : "";
-                      const minLevel = evo.minLevel ? ` (Lvl ${evo.minLevel})` : "";
-                      return (
+              {/* Default (desktop/full) details */}
+              {!hideDetails && (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="p-3 rounded-xl border border-gray-100 bg-gray-50">
+                      <p className="text-xs text-gray-500">Types</p>
+                      <p className="text-sm font-semibold text-gray-800 capitalize">
+                        {pokemon.types.join(", ")}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl border border-gray-100 bg-gray-50">
+                      <p className="text-xs text-gray-500">Abilities</p>
+                      <p className="text-sm font-semibold text-gray-800">
+                        {pokemon.abilities.length}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl border border-gray-100 bg-gray-50">
+                      <p className="text-xs text-gray-500">Evolutions</p>
+                      <p className="text-sm font-semibold text-gray-800">
+                        {pokemon.evolutions?.length ?? 0}
+                      </p>
+                    </div>
+                  </div>
+
+                  <section>
+                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                      <Zap className="h-4 w-4" /> Abilities
+                    </h3>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {pokemon.abilities.map((ability) => (
                         <div
-                          key={`${evo.species}-${idx}`}
-                          className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100 hover:shadow-sm hover:border-blue-100 transition-all duration-200"
+                          key={ability}
+                          className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium border border-blue-100 capitalize hover:bg-blue-100 transition-colors duration-200"
                         >
-                          <div className="flex flex-col">
-                            <span className="font-medium text-gray-700 capitalize">{evo.species}</span>
-                            <span className="text-xs text-gray-500 capitalize">
-                              Via {triggerLabel}
-                              {minLevel}
-                              {itemLabel}
-                            </span>
-                          </div>
-                          <div className="h-8 w-8 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 text-[#2A7B9B] font-bold">
-                            <span className="text-xs">{idx + 1}</span>
-                          </div>
+                          {ability.replace("-", " ")}
                         </div>
-                      );
-                    })
-                  ) : (
-                    <div className="p-4 rounded-xl border border-gray-100 bg-gray-50 text-sm text-gray-500">
-                      No evolution data available.
+                      ))}
+                    </div>
+                  </section>
+
+                  <section>
+                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                      <ArrowRight className="h-4 w-4" /> Evolutions
+                    </h3>
+                    <div className="mt-3 space-y-3">
+                      {pokemon.evolutions && pokemon.evolutions.length > 0 ? (
+                        pokemon.evolutions.map((evo, idx) => {
+                          const triggerLabel = evo.trigger ? evo.trigger.replace("-", " ") : "Unknown";
+                          const itemLabel = evo.item ? ` + ${evo.item.replace("-", " ")}` : "";
+                          const minLevel = evo.minLevel ? ` (Lvl ${evo.minLevel})` : "";
+                          return (
+                            <div
+                              key={`${evo.species}-${idx}`}
+                              className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100 hover:shadow-sm hover:border-blue-100 transition-all duration-200"
+                            >
+                              <div className="flex flex-col">
+                                <span className="font-medium text-gray-700 capitalize">{evo.species}</span>
+                                <span className="text-xs text-gray-500 capitalize">
+                                  Via {triggerLabel}
+                                  {minLevel}
+                                  {itemLabel}
+                                </span>
+                              </div>
+                              <div className="h-8 w-8 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 text-[#2A7B9B] font-bold">
+                                <span className="text-xs">{idx + 1}</span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="p-4 rounded-xl border border-gray-100 bg-gray-50 text-sm text-gray-500">
+                          No evolution data available.
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                </>
+              )}
+
+              {/* Mobile compact content */}
+              {hideDetails && compactActions && mobileSection !== "none" && (
+                <div className="space-y-4">
+                  {mobileSection === "overview" && (
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="p-3 rounded-xl border border-gray-100 bg-gray-50">
+                        <p className="text-xs text-gray-500">Types</p>
+                        <p className="text-sm font-semibold text-gray-800 capitalize">
+                          {pokemon.types.join(", ")}
+                        </p>
+                      </div>
+                      <div className="p-3 rounded-xl border border-gray-100 bg-gray-50">
+                        <p className="text-xs text-gray-500">Abilities</p>
+                        <p className="text-sm font-semibold text-gray-800">
+                          {pokemon.abilities.length}
+                        </p>
+                      </div>
+                      <div className="p-3 rounded-xl border border-gray-100 bg-gray-50">
+                        <p className="text-xs text-gray-500">Evolutions</p>
+                        <p className="text-sm font-semibold text-gray-800">
+                          {pokemon.evolutions?.length ?? 0}
+                        </p>
+                      </div>
                     </div>
                   )}
+
+                  {mobileSection === "abilities" && (
+                    <section>
+                      <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                        <Zap className="h-4 w-4" /> Abilities
+                      </h3>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {pokemon.abilities.map((ability) => (
+                          <div
+                            key={ability}
+                            className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-medium border border-blue-100 capitalize"
+                          >
+                            {ability.replace("-", " ")}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {mobileSection === "evolutions" && (
+                    <section>
+                      <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                        <ArrowRight className="h-4 w-4" /> Evolutions
+                      </h3>
+                      <div className="mt-3 space-y-3">
+                        {pokemon.evolutions && pokemon.evolutions.length > 0 ? (
+                          pokemon.evolutions.map((evo, idx) => {
+                            const triggerLabel = evo.trigger ? evo.trigger.replace("-", " ") : "Unknown";
+                            const itemLabel = evo.item ? ` + ${evo.item.replace("-", " ")}` : "";
+                            const minLevel = evo.minLevel ? ` (Lvl ${evo.minLevel})` : "";
+                            return (
+                              <div
+                                key={`${evo.species}-${idx}`}
+                                className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100"
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-gray-700 capitalize">{evo.species}</span>
+                                  <span className="text-xs text-gray-500 capitalize">
+                                    Via {triggerLabel}
+                                    {minLevel}
+                                    {itemLabel}
+                                  </span>
+                                </div>
+                                <div className="h-7 w-7 bg-white rounded-full flex items-center justify-center border border-gray-100 text-[#2A7B9B] font-bold">
+                                  <span className="text-[11px]">{idx + 1}</span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="p-4 rounded-xl border border-gray-100 bg-gray-50 text-sm text-gray-500">
+                            No evolution data available.
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  )}
                 </div>
-              </section>
+              )}
             </div>
           </motion.div>
         ) : null}

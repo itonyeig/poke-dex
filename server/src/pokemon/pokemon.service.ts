@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, AxiosError } from 'axios';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -38,30 +38,54 @@ export class PokemonService {
     });
   }
 
-  async getPokemonList(limit: number = 150, offset: number = 0): Promise<PokemonResult[] | null> {
-    const cacheKey = `${this.CACHE_KEY}-${limit}-${offset}`;
+  async getPokemonList(limit: number = 30, offset: number = 0): Promise<(PokemonResult & { id: number })[] | null> {
+    const MAX_TOTAL = 150;
+    const safeOffset = Math.max(0, Math.min(offset, MAX_TOTAL));
+    const remaining = Math.max(0, MAX_TOTAL - safeOffset);
+    if (remaining === 0) {
+      return [];
+    }
+    const safeLimit = Math.max(1, Math.min(limit ?? 30, 30, remaining));
+    const cacheKey = `${this.CACHE_KEY}-${safeLimit}-${safeOffset}`;
     
     // Try to get from cache first
-    const cachedData = await this.cacheManager.get<PokemonResult[]>(cacheKey);
+    const cachedData = await this.cacheManager.get<(PokemonResult & { id: number })[]>(cacheKey);
     if (cachedData) {
       return cachedData;
     }
 
     // If not in cache, fetch from API
     try {
-      const response = await this.pokeAxiosClient.get<PokemonListResponse>(`/?limit=${limit}&offset=${offset}`);
+      const response = await this.pokeAxiosClient.get<PokemonListResponse>(`/?limit=${safeLimit}&offset=${safeOffset}`);
       const data = response.data;
       if (response.status !== 200 || !data) {
         throw new BadRequestException('Failed to get pokemon list');
       }
       
-      // Store in cache (TTL is set at module level - 1 day)
-      await this.cacheManager.set(cacheKey, data.results);
+      // Extract IDs from URLs and enrich results
+      const enrichedResults = data.results.map((result) => {
+        const idMatch = result.url.match(/\/(\d+)\/?$/);
+        const id = idMatch ? parseInt(idMatch[1], 10) : 0;
+        return {
+          ...result,
+          id,
+        };
+      });
       
-      return data.results;
-    } catch (error: any) {
-      const err = error?.response?.data || error;
-      throw new BadRequestException(err?.message || 'Failed to fetch data');
+      // Store enriched results in cache (TTL is set at module level - 1 day)
+      await this.cacheManager.set(cacheKey, enrichedResults);
+      
+      return enrichedResults;
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ message?: string }>;
+        const message = axiosError.response?.data?.message || axiosError.message || 'Failed to fetch data';
+        throw new BadRequestException(message);
+      }
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message || 'Failed to fetch data');
+      }
+      throw new BadRequestException('Failed to fetch data');
     }
   }
 
@@ -101,11 +125,18 @@ export class PokemonService {
       await this.cacheManager.set(cacheKey, result, this.POKEMON_CACHE_TTL);
       
       return result;
-    }
-    catch (error: any) {
-      const err = error?.response?.data || error;
-      console.error('Error fetching pokemon by id', err);
-      throw new BadRequestException(err?.message || 'Failed to fetch pokemon');
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ message?: string }>;
+        const message = axiosError.response?.data?.message || axiosError.message || 'Failed to fetch pokemon';
+        console.error('Error fetching pokemon by id', axiosError);
+        throw new BadRequestException(message);
+      }
+      if (error instanceof Error) {
+        console.error('Error fetching pokemon by id', error);
+        throw new BadRequestException(error.message || 'Failed to fetch pokemon');
+      }
+      throw new BadRequestException('Failed to fetch pokemon');
     }
   }
 
@@ -128,12 +159,15 @@ export class PokemonService {
       } satisfies FavoritePokemon);
 
       return favorite.toObject();
-    } catch (error: any) {
-      if (error?.code === 11000) {
+    } catch (error: unknown) {
+      // Handle MongoDB duplicate key error (code 11000)
+      if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
         throw new ConflictException('Pokemon is already in favorites');
       }
-      const err = error?.response?.data || error;
-      throw new BadRequestException(err?.message || 'Failed to add favorite');
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message || 'Failed to add favorite');
+      }
+      throw new BadRequestException('Failed to add favorite');
     }
   }
 
@@ -146,7 +180,7 @@ export class PokemonService {
   }
 
   private async fetchEvolutionOptions(speciesUrl: string, pokemonName: string): Promise<EvolutionOption[]> {
-    console.log('fetchEvolutionOptions', speciesUrl, pokemonName);
+    // console.log('fetchEvolutionOptions', speciesUrl, pokemonName);
     try {
       const speciesResponse = await axios.get<PokemonSpeciesResponse>(speciesUrl);
       const evolutionChainUrl = speciesResponse.data?.evolution_chain?.url;
@@ -163,8 +197,12 @@ export class PokemonService {
         return [];
       }
       return this.collectEvolutionOptions(targetNode.evolves_to);
-    } catch(error: any) {
-      console.error('Error fetching evolution options', error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error('Error fetching evolution options', error.message);
+      } else {
+        console.error('Error fetching evolution options', error);
+      }
       return [];
     }
   }

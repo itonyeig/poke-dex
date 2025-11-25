@@ -6,8 +6,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { PokemonListItem } from "@/types";
 
+// Pokemon with ID already extracted (from parent component)
+type PokemonWithId = PokemonListItem & { id: number };
+
 interface PokemonListItemProps {
-  pokemon: PokemonListItem & { id: number };
+  pokemon: PokemonWithId;
   isSelected: boolean;
   isFavorite: boolean;
   onClick: () => void;
@@ -76,9 +79,7 @@ export function PokemonListItemComponent({
           </span>
           <div className="flex items-center gap-2">
             <span className="font-semibold capitalize leading-tight">{displayName}</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/5 text-gray-500">
-              Gen I
-            </span>
+              
           </div>
         </div>
         {isFavorite && (
@@ -108,7 +109,7 @@ export function PokemonListItemComponent({
 }
 
 interface PokemonListProps {
-  pokemons: PokemonListItem[];
+  pokemons: PokemonWithId[]; // Expect pokemons with IDs already extracted
   selectedId: number | null;
   favorites: Set<number>; // Set of IDs for fast lookup
   onSelect: (id: number) => void;
@@ -120,14 +121,8 @@ export function PokemonList({
   favorites,
   onSelect,
 }: PokemonListProps) {
-  const items = React.useMemo(
-    () =>
-      pokemons.map((pokemon) => ({
-        ...pokemon,
-        id: parseInt(pokemon.url.split("/").filter(Boolean).pop() || "0", 10),
-      })),
-    [pokemons]
-  );
+  // No need to extract IDs - they're already in the pokemons prop
+  const items = React.useMemo(() => pokemons, [pokemons]);
 
   const handleKeyNavigate = (direction: "up" | "down", currentIndex: number) => {
     if (items.length === 0) return;

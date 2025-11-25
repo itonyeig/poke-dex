@@ -8,6 +8,7 @@ export interface PokemonListResponse {
 export interface PokemonResult {
   name: string;
   url: string;
+  id: number; // ID extracted from URL by backend
 }
 
 export interface PokemonApiResponse {
