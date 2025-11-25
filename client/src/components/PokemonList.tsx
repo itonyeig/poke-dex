@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Star } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Star, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { Virtuoso } from "react-virtuoso";
 import { cn } from "@/lib/utils";
 import { PokemonListItem } from "@/types";
 
@@ -47,12 +48,8 @@ export function PokemonListItemComponent({
   return (
     <motion.button
       layout
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
       transition={{
-        layout: { duration: 0.3, type: "spring", bounce: 0.2 },
-        opacity: { duration: 0.2 }
+        layout: { duration: 0.3, type: "spring", bounce: 0.2 }
       }}
       onClick={onClick}
       onKeyDown={handleKeyDown}
@@ -113,6 +110,9 @@ interface PokemonListProps {
   selectedId: number | null;
   favorites: Set<number>; // Set of IDs for fast lookup
   onSelect: (id: number) => void;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 export function PokemonList({
@@ -120,11 +120,34 @@ export function PokemonList({
   selectedId,
   favorites,
   onSelect,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
 }: PokemonListProps) {
-  // No need to extract IDs - they're already in the pokemons prop
   const items = React.useMemo(() => pokemons, [pokemons]);
 
-  const handleKeyNavigate = (direction: "up" | "down", currentIndex: number) => {
+  // Responsive column count
+  const [columnCount, setColumnCount] = React.useState(() => 
+    typeof window !== 'undefined' && window.innerWidth >= 640 ? 2 : 1
+  );
+
+  // Update column count on resize
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const mediaQuery = window.matchMedia('(min-width: 640px)');
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
+      setColumnCount(e.matches ? 2 : 1);
+    };
+    
+    // Initial check
+    handler(mediaQuery);
+    
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
+  const handleKeyNavigate = React.useCallback((direction: "up" | "down", currentIndex: number) => {
     if (items.length === 0) return;
     if (direction === "down") {
       const next = items[currentIndex + 1] ?? items[0];
@@ -133,8 +156,18 @@ export function PokemonList({
       const prev = items[currentIndex - 1] ?? items[items.length - 1];
       onSelect(prev.id);
     }
-  };
+  }, [items, onSelect]);
 
+  // Group items into rows for 2-column grid (must be called before any early returns)
+  const rows = React.useMemo(() => {
+    const result: PokemonWithId[][] = [];
+    for (let i = 0; i < items.length; i += columnCount) {
+      result.push(items.slice(i, i + columnCount));
+    }
+    return result;
+  }, [items, columnCount]);
+
+  // Empty state check AFTER all hooks
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-gray-400">
@@ -144,23 +177,46 @@ export function PokemonList({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-3 pb-4" role="listbox">
-      <AnimatePresence mode="popLayout">
-        {items.map((pokemon, index) => {
-          const id = pokemon.id;
+    <div className="h-full w-full">
+      <Virtuoso
+        style={{ height: '100%' }}
+        totalCount={rows.length}
+        endReached={() => {
+          if (hasMore && !loadingMore && onLoadMore) {
+            onLoadMore();
+          }
+        }}
+        itemContent={(rowIndex) => {
+          const rowItems = rows[rowIndex];
           return (
-            <PokemonListItemComponent
-              key={pokemon.name}
-              pokemon={pokemon}
-              index={index}
-              isSelected={selectedId === id}
-              isFavorite={favorites.has(id)}
-              onClick={() => onSelect(id)}
-              onKeyNavigate={handleKeyNavigate}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 px-0.5 py-1.5" key={`row-${rowIndex}`}>
+              {rowItems.map((pokemon, colIndex) => {
+                const itemIndex = rowIndex * columnCount + colIndex;
+                const id = pokemon.id;
+                return (
+                  <PokemonListItemComponent
+                    key={pokemon.name}
+                    pokemon={pokemon}
+                    index={itemIndex}
+                    isSelected={selectedId === id}
+                    isFavorite={favorites.has(id)}
+                    onClick={() => onSelect(id)}
+                    onKeyNavigate={handleKeyNavigate}
+                  />
+                );
+              })}
+            </div>
           );
-        })}
-      </AnimatePresence>
+        }}
+        components={{
+          Footer: () => 
+            hasMore && loadingMore ? (
+              <div className="flex justify-center items-center h-10 py-4">
+                <Loader2 className="h-4 w-4 animate-spin text-[#2A7B9B]" aria-label="Loading more Pokémon" />
+              </div>
+            ) : null
+        }}
+      />
     </div>
   );
 }

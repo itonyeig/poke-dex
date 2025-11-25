@@ -6,7 +6,7 @@ import { PokemonListItem, FavoritePokemon } from "@/types";
 import { PokemonList } from "@/components/PokemonList";
 import { PokemonDetailPanel } from "@/components/PokemonDetailPanel";
 import { ControlsBar } from "@/components/ControlsBar";
-import { Zap, Loader2 } from "lucide-react";
+import { Zap } from "lucide-react";
 import toast from "react-hot-toast";
 
 const PAGE_SIZE = 30;
@@ -276,23 +276,16 @@ export default function Home() {
                     Showing {filteredPokemon.length}
                   </span>
                 </div>
-                <div className="max-h-[60vh] overflow-y-auto custom-scrollbar pr-2 -mr-2">
+                <div className="h-[60vh]">
                   <PokemonList
                     pokemons={filteredPokemon}
                     selectedId={selectedId}
                     favorites={favoriteIds}
                     onSelect={setSelectedId}
+                    hasMore={hasMore}
+                    loadingMore={loadingMore}
+                    onLoadMore={handleLoadMore}
                   />
-                  {hasMore && (
-                    <div
-                      className="mt-3 flex justify-center items-center h-10"
-                      ref={mobileLoadMoreRef}
-                    >
-                      {loadingMore && (
-                        <Loader2 className="h-4 w-4 animate-spin text-[#2A7B9B]" aria-label="Loading more Pokémon" />
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -334,23 +327,16 @@ export default function Home() {
                     Showing {filteredPokemon.length}
                   </span>
                 </div>
-                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 -mr-2 lg:h-full">
+                <div className="flex-1 lg:h-full">
                   <PokemonList
                     pokemons={filteredPokemon}
                     selectedId={selectedId}
                     favorites={favoriteIds}
                     onSelect={setSelectedId}
+                    hasMore={hasMore}
+                    loadingMore={loadingMore}
+                    onLoadMore={handleLoadMore}
                   />
-                  {hasMore && (
-                    <div
-                      className="mt-3 flex justify-center items-center h-10"
-                      ref={desktopLoadMoreRef}
-                    >
-                      {loadingMore && (
-                        <Loader2 className="h-4 w-4 animate-spin text-[#2A7B9B]" aria-label="Loading more Pokémon" />
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
 
