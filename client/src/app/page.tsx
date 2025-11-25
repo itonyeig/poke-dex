@@ -11,7 +11,8 @@ import toast from "react-hot-toast";
 
 export default function Home() {
   // Data State
-  const [pokemonList, setPokemonList] = React.useState<PokemonListItem[]>([]);
+  type PokemonListEntry = PokemonListItem & { id: number };
+  const [pokemonList, setPokemonList] = React.useState<PokemonListEntry[]>([]);
   const [favorites, setFavorites] = React.useState<FavoritePokemon[]>([]);
 
   // UI State
@@ -32,7 +33,11 @@ export default function Home() {
           api.getPokemonList(),
           api.getFavorites(),
         ]);
-        setPokemonList(listData);
+        const parsedList = listData.map((p) => ({
+          ...p,
+          id: parseInt(p.url.split("/").filter(Boolean).pop() || "0", 10),
+        }));
+        setPokemonList(parsedList);
         setFavorites(favData);
       } catch (err) {
         console.error("Failed to load initial data", err);
@@ -55,8 +60,7 @@ export default function Home() {
 
     if (showFavoritesOnly) {
       filtered = filtered.filter((p) => {
-        const id = parseInt(p.url.split("/").filter(Boolean).pop() || "0", 10);
-        return favoriteIds.has(id);
+        return favoriteIds.has(p.id);
       });
     }
 
@@ -114,7 +118,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4 lg:h-[calc(100vh-88px)] lg:overflow-hidden">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4 lg:h-[100vh] lg:max-h-[100vh] lg:overflow-hidden">
         {error && (
           <div className="p-4 bg-red-50 border border-red-100 rounded-lg text-red-600 text-sm">
             {error}
@@ -126,9 +130,9 @@ export default function Home() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2A7B9B]"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_minmax(0,420px)] gap-4 lg:gap-6 min-h-[70vh] lg:h-full lg:overflow-hidden">
+          <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[260px_minmax(0,1fr)_minmax(0,420px)] lg:gap-6 lg:min-h-[70vh] lg:h-full lg:overflow-hidden">
             {/* Left Rail */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 lg:col-start-1 lg:row-start-1 lg:row-span-2">
               <div className="bg-white shadow-sm border border-gray-100 rounded-2xl p-4 sticky top-20">
                 <ControlsBar
                   searchTerm={searchTerm}
@@ -147,13 +151,23 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+              {/* Mobile detail placement between controls and roster */}
+              {selectedId && (
+                <div className="lg:hidden bg-white shadow-sm border border-gray-100 rounded-2xl p-2">
+                  <PokemonDetailPanel
+                    pokemonId={selectedId}
+                    isFavorite={favoriteIds.has(selectedId)}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                </div>
+              )}
               <div className="hidden lg:block text-xs text-gray-400">
                 Use ↑ ↓ to move, Enter to open.
               </div>
             </div>
 
             {/* Center Lane: Roster */}
-            <div className="bg-white shadow-sm border border-gray-100 rounded-2xl p-4 flex flex-col lg:h-full lg:overflow-hidden">
+            <div className="bg-white shadow-sm border border-gray-100 rounded-2xl p-4 flex flex-col lg:h-full lg:overflow-hidden lg:col-start-2 lg:row-start-1 lg:row-span-2">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Roster</p>
@@ -173,13 +187,30 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right Lane: Detail */}
-            <div className="h-full lg:h-full lg:overflow-hidden">
-              <PokemonDetailPanel
-                pokemonId={selectedId}
-                isFavorite={selectedId ? favoriteIds.has(selectedId) : false}
-                onToggleFavorite={handleToggleFavorite}
-              />
+            {/* Detail: mobile inline between filters and roster; desktop right column */}
+            <div
+              className={`
+                ${selectedId ? "block" : "hidden"}
+                lg:block bg-white shadow-sm border border-gray-100 rounded-2xl
+                lg:col-start-3 lg:row-start-1 lg:row-span-2 lg:h-full lg:overflow-hidden
+              `}
+            >
+              {selectedId && (
+                <PokemonDetailPanel
+                  pokemonId={selectedId}
+                  isFavorite={favoriteIds.has(selectedId)}
+                  onToggleFavorite={handleToggleFavorite}
+                />
+              )}
+              {!selectedId && (
+                <div className="hidden lg:block h-full">
+                  <PokemonDetailPanel
+                    pokemonId={selectedId}
+                    isFavorite={false}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}
