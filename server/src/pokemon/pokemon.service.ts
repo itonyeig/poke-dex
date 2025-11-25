@@ -77,15 +77,7 @@ export class PokemonService {
       
       return enrichedResults;
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<{ message?: string }>;
-        const message = axiosError.response?.data?.message || axiosError.message || 'Failed to fetch data';
-        throw new BadRequestException(message);
-      }
-      if (error instanceof Error) {
-        throw new BadRequestException(error.message || 'Failed to fetch data');
-      }
-      throw new BadRequestException('Failed to fetch data');
+      this.handleApiError(error);
     }
   }
 
@@ -126,17 +118,7 @@ export class PokemonService {
       
       return result;
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<{ message?: string }>;
-        const message = axiosError.response?.data?.message || axiosError.message || 'Failed to fetch pokemon';
-        console.error('Error fetching pokemon by id', axiosError);
-        throw new BadRequestException(message);
-      }
-      if (error instanceof Error) {
-        console.error('Error fetching pokemon by id', error);
-        throw new BadRequestException(error.message || 'Failed to fetch pokemon');
-      }
-      throw new BadRequestException('Failed to fetch pokemon');
+      this.handleApiError(error);
     }
   }
 
@@ -160,14 +142,7 @@ export class PokemonService {
 
       return favorite.toObject();
     } catch (error: unknown) {
-      // Handle MongoDB duplicate key error (code 11000)
-      if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
-        throw new ConflictException('Pokemon is already in favorites');
-      }
-      if (error instanceof Error) {
-        throw new BadRequestException(error.message || 'Failed to add favorite');
-      }
-      throw new BadRequestException('Failed to add favorite');
+      this.handleDuplicateError(error);
     }
   }
 
@@ -243,5 +218,29 @@ export class PokemonService {
       options.push(...this.collectEvolutionOptions(node.evolves_to));
     }
     return options;
+  }
+
+  private handleDuplicateError(error: unknown): void {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
+      throw new ConflictException('Pokemon is already in favorites');
+    }
+    if (error instanceof Error) {
+      throw new BadRequestException(error.message || 'Failed to add favorite');
+    }
+    throw new BadRequestException('Failed to add favorite');
+  }
+
+  private handleApiError(error: unknown, context?: string): void {
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const message = axiosError.response?.data?.message || axiosError.message || 'Failed to fetch data';
+      console.error(`Error fetching pokemon${context ? `: ${context}` : ''}`, axiosError);
+      throw new BadRequestException(message);
+    }
+    if (error instanceof Error) {
+      console.error(`Error fetching pokemon${context ? `: ${context}` : ''}`, error);
+      throw new BadRequestException(error.message || 'Failed to fetch data');
+    }
+    throw new BadRequestException('Failed to fetch data');
   }
 }
