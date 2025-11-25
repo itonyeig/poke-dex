@@ -19,10 +19,19 @@ export function PokemonDetailPanel({
   isFavorite,
   onToggleFavorite,
 }: PokemonDetailPanelProps) {
+  const panelRef = React.useRef<HTMLDivElement | null>(null);
   const [pokemon, setPokemon] = React.useState<PokemonDetail | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [isFavoriteLoading, setIsFavoriteLoading] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState<"overview" | "abilities" | "evolutions">("overview");
+
+  React.useEffect(() => {
+    // Smooth scroll to top of the detail panel when a new Pokémon is selected
+    if (panelRef.current) {
+      panelRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [pokemonId]);
 
   React.useEffect(() => {
     if (!pokemonId) {
@@ -48,6 +57,7 @@ export function PokemonDetailPanel({
     };
 
     fetchDetail();
+    setActiveTab("overview");
 
     return () => {
       isMounted = false;
@@ -77,7 +87,10 @@ export function PokemonDetailPanel({
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden h-full min-h-[500px] relative">
+    <div
+      ref={panelRef}
+      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-y-auto custom-scrollbar h-full min-h-[500px] relative flex flex-col"
+    >
       <AnimatePresence mode="wait">
         {loading ? (
           <motion.div
@@ -136,107 +149,202 @@ export function PokemonDetailPanel({
             transition={{ duration: 0.3 }}
             className="flex flex-col h-full"
           >
-            {/* Header Section - Name/ID above image */}
-            <div className="relative bg-gradient-to-b from-gray-50 to-white p-6 flex flex-col items-center border-b border-gray-100">
-              {/* Favorite Button */}
-              <div className="absolute top-4 right-4">
+            {/* Hero */}
+            <div className="relative bg-gradient-to-br from-[#2A7B9B]/10 via-white to-emerald-50 p-6 pb-4 border-b border-gray-100">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-gray-400 mb-1">
+                    #{String(pokemon.id).padStart(3, "0")}
+                  </p>
+                  <h2 className="text-3xl font-bold text-gray-800 capitalize mb-2">{pokemon.name}</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {pokemon.types.map((type) => (
+                      <span
+                        key={type}
+                        className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-white/80 text-gray-700 border border-gray-200"
+                      >
+                        {type}
+                      </span>
+                    ))}
+                  </div>
+                </div>
                 <motion.button
-                  whileTap={{ scale: 0.9 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={handleFavoriteClick}
                   disabled={isFavoriteLoading}
                   className={cn(
-                    "p-2 rounded-full transition-all shadow-sm border relative overflow-hidden",
-                    isFavorite 
-                      ? "bg-yellow-50 border-yellow-200 text-yellow-500" 
-                      : "bg-white border-gray-200 text-gray-300 hover:text-gray-400 hover:bg-gray-50"
+                    "p-3 rounded-2xl transition-all shadow-sm border relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#2A7B9B]",
+                    isFavorite
+                      ? "bg-yellow-50 border-yellow-200 text-yellow-600"
+                      : "bg-white border-gray-200 text-gray-400 hover:text-gray-500 hover:bg-gray-50"
                   )}
+                  aria-pressed={isFavorite}
+                  aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
                 >
-                   {isFavoriteLoading ? (
-                      <Loader2 className="h-6 w-6 animate-spin text-[#2A7B9B]" />
-                   ) : (
-                      <Star className={cn("h-6 w-6", isFavorite && "fill-current")} />
-                   )}
+                  {isFavoriteLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-[#2A7B9B]" />
+                  ) : (
+                    <Star className={cn("h-5 w-5", isFavorite && "fill-current")} />
+                  )}
                 </motion.button>
               </div>
 
-              {/* Name and ID */}
-              <div className="text-center mb-4">
-                <span className="text-sm font-mono text-gray-400 mb-1 block">#{String(pokemon.id).padStart(3, '0')}</span>
-                <h2 className="text-3xl font-bold text-gray-800 capitalize mb-3">{pokemon.name}</h2>
-                <div className="flex gap-2 justify-center">
-                  {pokemon.types.map((type) => (
-                    <span
-                      key={type}
-                      className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-gray-100 text-gray-600 border border-gray-200 hover:bg-white hover:shadow-sm hover:border-[#2A7B9B]/30 hover:text-[#2A7B9B] transition-all duration-200 cursor-default"
-                    >
-                      {type}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Image */}
               <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
+                initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                className="relative z-10"
+                transition={{ delay: 0.05, type: "spring", stiffness: 200 }}
+                className="mt-4 flex justify-center"
               >
-                <img
-                  src={pokemon.image}
-                  alt={pokemon.name}
-                  className="w-40 h-40 object-contain drop-shadow-xl"
-                />
+                <div className="bg-white border border-gray-100 rounded-2xl shadow-sm px-6 py-4">
+                  <img
+                    src={pokemon.image}
+                    alt={pokemon.name}
+                    className="w-32 h-32 object-contain drop-shadow-xl"
+                  />
+                </div>
               </motion.div>
             </div>
 
-            {/* Details Section */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-              {/* Abilities */}
-              <section>
-                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <Zap className="h-4 w-4" /> Abilities
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {pokemon.abilities.map((ability) => (
-                    <div
-                      key={ability}
-                      className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium border border-blue-100 capitalize hover:bg-blue-100 transition-colors duration-200"
-                    >
-                      {ability.replace('-', ' ')}
-                    </div>
-                  ))}
-                </div>
-              </section>
+            {/* Tabs */}
+            <div className="border-b border-gray-100 px-6 pt-4 bg-white">
+              <div className="flex gap-2">
+                {[
+                  { key: "overview", label: "Overview" },
+                  { key: "abilities", label: "Abilities" },
+                  { key: "evolutions", label: "Evolutions" },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key as typeof activeTab)}
+                    className={cn(
+                      "px-3 py-2 rounded-xl text-sm font-medium transition-all",
+                      activeTab === tab.key
+                        ? "bg-theme-gradient text-white shadow-sm"
+                        : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
+                    )}
+                    aria-pressed={activeTab === tab.key}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-              {/* Evolutions */}
-              {pokemon.evolutions && pokemon.evolutions.length > 0 && (
-                <section>
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <ArrowRight className="h-4 w-4" /> Evolutions
-                  </h3>
-                  <div className="space-y-3">
-                    {pokemon.evolutions.map((evo, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100 hover:shadow-sm hover:border-blue-100 transition-all duration-200"
-                      >
-                        <div className="flex flex-col">
-                          <span className="font-medium text-gray-700 capitalize">{evo.species}</span>
-                          <span className="text-xs text-gray-400 capitalize">
-                            Via {evo.trigger.replace('-', ' ')}
-                            {evo.minLevel && ` (Lvl ${evo.minLevel})`}
-                            {evo.item && ` + ${evo.item.replace('-', ' ')}`}
-                          </span>
-                        </div>
-                        <div className="h-8 w-8 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 text-[#2A7B9B] font-bold">
-                          <span className="text-xs">{idx + 1}</span>
-                        </div>
+            {/* Tab Panels */}
+            <div className="flex-1 p-6">
+              <AnimatePresence mode="wait">
+                {activeTab === "overview" && (
+                  <motion.div
+                    key="overview"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-4"
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="p-3 rounded-xl border border-gray-100 bg-gray-50">
+                        <p className="text-xs text-gray-500">Types</p>
+                        <p className="text-sm font-semibold text-gray-800 capitalize">
+                          {pokemon.types.join(", ")}
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                </section>
-              )}
+                      <div className="p-3 rounded-xl border border-gray-100 bg-gray-50">
+                        <p className="text-xs text-gray-500">Abilities</p>
+                        <p className="text-sm font-semibold text-gray-800">
+                          {pokemon.abilities.length}
+                        </p>
+                      </div>
+                      <div className="p-3 rounded-xl border border-gray-100 bg-gray-50">
+                        <p className="text-xs text-gray-500">Evolutions</p>
+                        <p className="text-sm font-semibold text-gray-800">
+                          {pokemon.evolutions?.length ?? 0}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-xl border border-gray-100 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                        <Zap className="h-4 w-4" /> Quick look
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {pokemon.name} is ready for battle with {pokemon.types.join(" / ")} affinity
+                        and {pokemon.abilities.length} abilities in its toolkit.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeTab === "abilities" && (
+                  <motion.div
+                    key="abilities"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-3"
+                  >
+                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                      <Zap className="h-4 w-4" /> Abilities
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {pokemon.abilities.map((ability) => (
+                        <div
+                          key={ability}
+                          className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium border border-blue-100 capitalize hover:bg-blue-100 transition-colors duration-200"
+                        >
+                          {ability.replace("-", " ")}
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeTab === "evolutions" && (
+                  <motion.div
+                    key="evolutions"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-3"
+                  >
+                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                      <ArrowRight className="h-4 w-4" /> Evolutions
+                    </h3>
+                    {pokemon.evolutions && pokemon.evolutions.length > 0 ? (
+                      <div className="space-y-3">
+                        {pokemon.evolutions.map((evo, idx) => {
+                          const triggerLabel = evo.trigger ? evo.trigger.replace("-", " ") : "Unknown";
+                          const itemLabel = evo.item ? ` + ${evo.item.replace("-", " ")}` : "";
+                          const minLevel = evo.minLevel ? ` (Lvl ${evo.minLevel})` : "";
+                          return (
+                            <div
+                              key={`${evo.species}-${idx}`}
+                              className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100 hover:shadow-sm hover:border-blue-100 transition-all duration-200"
+                            >
+                              <div className="flex flex-col">
+                                <span className="font-medium text-gray-700 capitalize">{evo.species}</span>
+                                <span className="text-xs text-gray-500 capitalize">
+                                  Via {triggerLabel}
+                                  {minLevel}
+                                  {itemLabel}
+                                </span>
+                              </div>
+                              <div className="h-8 w-8 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 text-[#2A7B9B] font-bold">
+                                <span className="text-xs">{idx + 1}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-4 rounded-xl border border-gray-100 bg-gray-50 text-sm text-gray-500">
+                        No evolution data available.
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
         ) : null}

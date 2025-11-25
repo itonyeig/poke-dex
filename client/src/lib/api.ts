@@ -5,7 +5,7 @@ import {
   FavoritePokemon,
 } from "@/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://poke-be.onrender.com";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://poke-be.onrender.com";
 
 /**
  * Generic helper for API requests using fetch.
@@ -22,6 +22,7 @@ async function fetchClient<T>(
   };
 
   try {
+    console.log("url", url);
     const response = await fetch(url, {
       ...options,
       headers,

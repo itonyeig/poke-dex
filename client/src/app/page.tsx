@@ -13,12 +13,12 @@ export default function Home() {
   // Data State
   const [pokemonList, setPokemonList] = React.useState<PokemonListItem[]>([]);
   const [favorites, setFavorites] = React.useState<FavoritePokemon[]>([]);
-  
+
   // UI State
   const [selectedId, setSelectedId] = React.useState<number | null>(null);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [showFavoritesOnly, setShowFavoritesOnly] = React.useState(false);
-  
+
   // Loading/Error State
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -53,13 +53,6 @@ export default function Home() {
   const filteredPokemon = React.useMemo(() => {
     let filtered = pokemonList;
 
-    // 1. Filter by Favorites (Logic Change: Filter context first)
-    // If showFavoritesOnly is true, we start with the favorites list, otherwise all.
-    // However, since pokemonList is just the list of 150, and favorites has metadata, 
-    // we need to be careful.
-    
-    // Strategy:
-    // If favorites only: Filter the main list to include only those in favorites.
     if (showFavoritesOnly) {
       filtered = filtered.filter((p) => {
         const id = parseInt(p.url.split("/").filter(Boolean).pop() || "0", 10);
@@ -67,7 +60,6 @@ export default function Home() {
       });
     }
 
-    // 2. Filter by Search Term (within the current context)
     if (searchTerm) {
       const lowerTerm = searchTerm.toLowerCase();
       filtered = filtered.filter((p) => p.name.toLowerCase().includes(lowerTerm));
@@ -96,23 +88,35 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+      <header className="bg-white/80 backdrop-blur border-b border-gray-200 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="bg-[#2A7B9B] p-1.5 rounded-lg">
+          <div className="flex items-center gap-3">
+            <div className="bg-[#2A7B9B] p-2 rounded-xl shadow-sm">
               <Zap className="h-5 w-5 text-white" />
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-gray-900">
-              Poké<span className="text-[#2A7B9B]">Dex</span>
-            </h1>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-gray-400">PokéDex</p>
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-gray-900">
+                Explorer
+              </h1>
+            </div>
+          </div>
+          <div className="hidden md:flex items-center gap-6 text-sm text-gray-500">
+            
+            <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="font-semibold text-gray-700">Favorites</span>
+              <span className="px-2 py-1 rounded-full bg-gray-100 text-xs">
+                {favorites.length}
+              </span>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4 lg:h-[calc(100vh-88px)] lg:overflow-hidden">
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg text-red-600 text-sm">
+          <div className="p-4 bg-red-50 border border-red-100 rounded-lg text-red-600 text-sm">
             {error}
           </div>
         )}
@@ -122,18 +126,44 @@ export default function Home() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2A7B9B]"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)] gap-6 h-[calc(100vh-140px)] min-h-[600px]">
-            
-            {/* Left Column: List & Controls */}
-            <div className="flex flex-col gap-4 h-full overflow-hidden">
-              <ControlsBar
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                showFavoritesOnly={showFavoritesOnly}
-                onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
-              />
-              
-              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 -mr-2">
+          <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_minmax(0,420px)] gap-4 lg:gap-6 min-h-[70vh] lg:h-full lg:overflow-hidden">
+            {/* Left Rail */}
+            <div className="flex flex-col gap-4">
+              <div className="bg-white shadow-sm border border-gray-100 rounded-2xl p-4 sticky top-20">
+                <ControlsBar
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  showFavoritesOnly={showFavoritesOnly}
+                  onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                />
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-gray-500">
+                  <div className="p-2 rounded-xl bg-gray-50 border border-gray-100">
+                    <p className="font-semibold text-gray-700 text-sm">{pokemonList.length}</p>
+                    <p>Total Pokémon</p>
+                  </div>
+                  <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-100">
+                    <p className="font-semibold text-emerald-700 text-sm">{favorites.length}</p>
+                    <p>Favorites</p>
+                  </div>
+                </div>
+              </div>
+              <div className="hidden lg:block text-xs text-gray-400">
+                Use ↑ ↓ to move, Enter to open.
+              </div>
+            </div>
+
+            {/* Center Lane: Roster */}
+            <div className="bg-white shadow-sm border border-gray-100 rounded-2xl p-4 flex flex-col lg:h-full lg:overflow-hidden">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Roster</p>
+                  <h2 className="text-lg font-semibold text-gray-800">First 150</h2>
+                </div>
+                <span className="text-xs text-gray-500">
+                  Showing {filteredPokemon.length}
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 -mr-2 lg:h-full">
                 <PokemonList
                   pokemons={filteredPokemon}
                   selectedId={selectedId}
@@ -141,14 +171,10 @@ export default function Home() {
                   onSelect={setSelectedId}
                 />
               </div>
-              
-              <div className="text-xs text-gray-400 text-center py-2 border-t border-gray-100">
-                Showing {filteredPokemon.length} Pokémon
-              </div>
             </div>
 
-            {/* Right Column: Detail Panel */}
-            <div className="h-full overflow-hidden sticky top-6">
+            {/* Right Lane: Detail */}
+            <div className="h-full lg:h-full lg:overflow-hidden">
               <PokemonDetailPanel
                 pokemonId={selectedId}
                 isFavorite={selectedId ? favoriteIds.has(selectedId) : false}
